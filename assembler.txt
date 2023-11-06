@@ -1,0 +1,104 @@
+ORG 1000h
+texto DB "!!!AEIOU..AEIOU..aeiou..ABCDEFG.123"
+texto_fin DB 0
+RES DB 0
+
+vocales DB "AEIOU"
+
+ORG 3000h
+ENCRYPT:
+PUSH AX
+PUSH BX
+
+MOV BX, SP
+ADD BX, 6
+
+MOV BX, [BX];offset caracter
+MOV AL, BYTE PTR[BX];caracter
+
+CMP AL, 41h
+JZ A
+CMP AL, 45h
+JZ E
+CMP AL, 49h
+JZ I
+CMP AL, 4Fh
+JZ O
+CMP AL, 55h
+JZ U
+
+A:
+MOV BYTE PTR[BX], 40h;@
+JMP FIN_ENCRYPT
+E:
+MOV BYTE PTR[BX], 33h;"3"
+JMP FIN_ENCRYPT
+I:
+MOV BYTE PTR[BX], 21h;!
+JMP FIN_ENCRYPT
+O:
+MOV BYTE PTR[BX], 30h;"0"
+JMP FIN_ENCRYPT
+U:
+MOV BYTE PTR[BX], 75h;u
+JMP FIN_ENCRYPT
+
+
+FIN_ENCRYPT:
+POP BX
+POP AX
+RET
+
+;/--------/
+
+ES_VOCAL_MAYUSCULA:
+PUSH BX
+PUSH CX
+
+MOV BX, offset vocales
+MOV CL, 5
+
+compararCaracter:
+CMP AL, [BX]
+JZ Vocal_true
+INC BX
+DEC CL
+JNZ compararCaracter
+
+MOV AH, 0h
+JMP FIN_ES_VOCAL
+
+Vocal_true:
+MOV AH, 0FFh
+
+FIN_ES_VOCAL:
+POP CX
+POP BX
+RET
+
+ORG 2000h
+MOV BX, offset texto
+MOV CX, offset texto_fin - offset texto
+;Utilizo las dos celdas del registro C para calcular la
+;diferencia de direcciones ya que al usar una unica celda 
+;limita a que el texto sea maximo de 255 caracteres de largo.
+;Aunque tambien habilita a que el texto sea de 65535 caracteres
+;cuando el tamaño de la memoria no permite almacenar esa cantidad
+;de caracteres.
+
+it:
+MOV AL, [BX]
+CALL ES_VOCAL_MAYUSCULA
+CMP AH, 0FFh
+JNZ no
+PUSH BX
+CALL ENCRYPT
+POP BX
+INC RES
+no:
+INC BX
+DEC CX
+JNZ it
+
+hlt
+END
